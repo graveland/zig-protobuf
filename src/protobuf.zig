@@ -1,4 +1,7 @@
 const std = @import("std");
+const build_options = @import("build_options");
+
+pub const version = build_options.version;
 
 const log = std.log.scoped(.zig_protobuf);
 

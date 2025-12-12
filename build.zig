@@ -10,6 +10,15 @@ pub const RunProtocStep = build_util.RunProtocStep;
 
 const PROTOC_VERSION = build_util.PROTOC_VERSION;
 
+fn getVersion(b: *std.Build) []const u8 {
+    const src_dir = std.fs.path.dirname(@src().file) orelse ".";
+    var exit_code: u8 = 0;
+    const git_hash = b.runAllowFail(&[_][]const u8{
+        "git", "-C", src_dir, "rev-parse", "HEAD",
+    }, &exit_code, .Inherit) catch return "unknown";
+    return std.mem.trim(u8, git_hash, &std.ascii.whitespace);
+}
+
 pub fn build(b: *std.Build) !void {
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
@@ -45,6 +54,10 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = optimize,
     });
+
+    const options = b.addOptions();
+    options.addOption([]const u8, "version", getVersion(b));
+    module.addOptions("build_options", options);
 
     const exe = build_util.buildGenerator(b, .{
         .target = target,
