@@ -85,9 +85,10 @@ fn assert(decoded: unittest.TestAllTypes) !void {
     try testing.expectEqual(decoded.optional_int64, 102);
     try testing.expectEqual(decoded.optional_uint32, 103);
     try testing.expectEqual(decoded.optional_uint64, 104);
-    // TODO: review why this zigzag encoding is not working
-    // TODO: try testing.expectEqual(decoded.optional_sint32, -53);
-    // TODO: try testing.expectEqual(decoded.optional_sint64, -xxx);
+    // ZigZag encoding works correctly - binary data contains 105 and 106
+    // (raw varints 210 and 212 which ZigZag decode to 105 and 106)
+    try testing.expectEqual(decoded.optional_sint32, 105);
+    try testing.expectEqual(decoded.optional_sint64, 106);
     try testing.expectEqual(decoded.optional_fixed32, 107);
     try testing.expectEqual(decoded.optional_fixed64, @as(i64, 108));
     try testing.expectEqual(decoded.optional_sfixed32, 109);

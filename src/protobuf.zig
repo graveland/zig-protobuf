@@ -405,7 +405,9 @@ fn writeValue(
     comptime force_append: bool,
 ) (std.mem.Allocator.Error || std.Io.Writer.Error)!void {
 
-    // TODO: review semantics of default-value in regards to wire protocol
+    // Per protobuf3 spec: default values (0, false, empty string, enum value 0)
+    // should NOT be written to the wire to save space. This is correct behavior.
+    // force_append overrides this for optionals where we need to distinguish 0 from null.
     const is_default_scalar_value = switch (@typeInfo(@TypeOf(value))) {
         .optional => value == null,
         // as per protobuf spec, the first element of the enums must be 0 and it is the default value
