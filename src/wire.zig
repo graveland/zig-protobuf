@@ -4,6 +4,20 @@ const std = @import("std");
 const protobuf = @import("protobuf.zig");
 const log = std.log.scoped(.zig_protobuf);
 
+/// Converts an integer to an enum value with validation.
+/// Returns error.InvalidEnumTag if the integer is not a valid enum value.
+fn intToEnum(comptime E: type, value: anytype) error{InvalidEnumTag}!E {
+    const info = @typeInfo(E).@"enum";
+    if (info.is_exhaustive) {
+        inline for (info.fields) |f| {
+            if (f.value == value) return @enumFromInt(value);
+        }
+        return error.InvalidEnumTag;
+    } else {
+        return @enumFromInt(value);
+    }
+}
+
 /// Wire type.
 pub const Type = enum(u3) {
     /// int32, int64, uint32, uint64, sint32, sint64, bool, enum
@@ -421,7 +435,7 @@ pub fn decodeRepeated(
                 var consumed: usize = 0;
                 while (consumed < bytes) {
                     const raw, const c = try decodeScalar(.int32, reader);
-                    const decoded = std.meta.intToEnum(Result, raw) catch {
+                    const decoded = intToEnum(Result, raw) catch {
                         @branchHint(.cold);
                         return error.InvalidInput;
                     };
@@ -437,7 +451,7 @@ pub fn decodeRepeated(
             // Unpacked repeated enum.
             else {
                 const raw, const consumed = try decodeScalar(.int32, reader);
-                const decoded = std.meta.intToEnum(Result, raw) catch {
+                const decoded = intToEnum(Result, raw) catch {
                     @branchHint(.cold);
                     return error.InvalidInput;
                 };
@@ -635,12 +649,9 @@ pub fn decodeMessage(
                     consumed += c;
                     const decoded = b: {
                         if (comptime field_ti == .optional) {
-                            break :b std.meta.intToEnum(
-                                field_ti.optional.child,
-                                raw,
-                            );
+                            break :b intToEnum(field_ti.optional.child, raw);
                         } else {
-                            break :b std.meta.intToEnum(Field, raw);
+                            break :b intToEnum(Field, raw);
                         }
                     } catch {
                         @branchHint(.cold);
@@ -886,10 +897,7 @@ pub fn decodeMessage(
                                 const raw, const c =
                                     try decodeScalar(.int32, reader);
                                 consumed += c;
-                                const decoded = std.meta.intToEnum(
-                                    oo_field.type,
-                                    raw,
-                                ) catch {
+                                const decoded = intToEnum(oo_field.type, raw) catch {
                                     @branchHint(.cold);
                                     return error.InvalidInput;
                                 };
