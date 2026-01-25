@@ -4,15 +4,15 @@ const builtin = @import("builtin");
 pub const PROTOC_VERSION = "32.1";
 
 // File system utilities
-pub fn dirExists(path: []const u8) bool {
-    var dir = std.fs.openDirAbsolute(path, .{}) catch return false;
-    dir.close();
+pub fn dirExists(io: std.Io, path: []const u8) bool {
+    var dir = std.Io.Dir.openDirAbsolute(io, path, .{}) catch return false;
+    dir.close(io);
     return true;
 }
 
-pub fn fileExists(path: []const u8) bool {
-    var file = std.fs.openFileAbsolute(path, .{}) catch return false;
-    file.close();
+pub fn fileExists(io: std.Io, path: []const u8) bool {
+    var file = std.Io.Dir.openFileAbsolute(io, path, .{}) catch return false;
+    file.close(io);
     return true;
 }
 
@@ -30,12 +30,13 @@ pub fn isEnvVarTruthy(allocator: std.mem.Allocator, name: []const u8) bool {
 pub fn ensureProtocBinaryDownloaded(
     b: *std.Build,
 ) !?[]const u8 {
+    const io = b.graph.io;
     if (try getProtocBin(b)) |executable_path| {
-        if (fileExists(executable_path)) {
+        if (fileExists(io, executable_path)) {
             return executable_path;
         }
 
-        if (!fileExists(executable_path)) {
+        if (!fileExists(io, executable_path)) {
             std.log.err("zig-protobuf: file not found: {s}", .{executable_path});
             std.process.exit(1);
         }
@@ -182,8 +183,8 @@ pub const RunProtocStep = struct {
                     u8,
                     &.{ "--zig_out=", absolute_dest_dir },
                 ));
-                if (!dirExists(absolute_dest_dir)) {
-                    try std.fs.makeDirAbsolute(absolute_dest_dir);
+                if (!dirExists(b.graph.io, absolute_dest_dir)) {
+                    try std.Io.Dir.createDirAbsolute(b.graph.io, absolute_dest_dir, .default_dir);
                 }
 
                 for (self.include_directories) |it| {
